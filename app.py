@@ -222,7 +222,7 @@ elif page == "🏆 Shortlist":
         st.info("No candidates yet. Go to 📥 Screen, or load the demo pool from 🏠 Overview.")
         st.stop()
     ranked = sorted(evals, key=lambda e: -e.result.score)
-    k = st.slider("Shortlist size", 1, len(ranked), min(5, len(ranked)))
+    k = st.slider("Shortlist size", 1, len(ranked), min(5, len(ranked))) if len(ranked) > 1 else 1
     c = st.columns(4)
     kpi(c[0], len(ranked), "candidates screened")
     kpi(c[1], f"{sum(len(e.removed) for e in ranked)}", "identity signals hidden")
@@ -381,7 +381,7 @@ elif page == "📊 Fairness":
                        for e in evals])
     a, b = st.columns([1, 1])
     dim = a.segmented_control("Group by", ["gender", "ethnicity", "institution"], default="institution") or "institution"
-    k = b.slider("Shortlist size", 1, len(df), min(5, len(df)))
+    k = b.slider("Shortlist size", 1, len(df), min(5, len(df))) if len(df) > 1 else 1
     tf, tl = impact_table(df, "FairScreen", dim, k), impact_table(df, "Legacy rules", dim, k)
     c = st.columns(3)
     kpi(c[0], f"{worst_ratio(tf):.2f}", "FairScreen impact ratio (≥0.80 passes 4/5 rule)")
