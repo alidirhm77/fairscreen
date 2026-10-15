@@ -32,5 +32,5 @@ def interview_kit(job) -> list[dict]:
 
 def feedback_card(result, profile) -> dict:
     strengths = [c.factor for c in result.contributions if c.kind in ("must", "nice") and c.points == c.max_points]
-    growth = [(f, pts, LEARNING.get(f, "Build a small project demonstrating this skill")) for f, pts in result.recourse[:4]]
+    growth = [(f, pts, LEARNING.get(f, f"Take a short course in {f} and build one small piece of work that shows it")) for f, pts in result.recourse[:4]]
     return {"strengths": strengths, "growth": growth}

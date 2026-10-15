@@ -77,15 +77,28 @@ def split_sections(text: str) -> dict[str, list[str]]:
     return sections
 
 
-def find_skills(text: str) -> dict[str, SkillHit]:
+# Phrases that contain a skill word but mean something else (e.g. "SQL Accounting" is accounting software).
+NOT_THIS_SKILL = {
+    "SQL": re.compile(r"\bsql\s+accounting\b", re.I),
+    "Excel": re.compile(r"\bexcel+en\w*", re.I),
+    "Java": re.compile(r"\bjava\s*script\b", re.I),
+}
+
+
+def find_skills(text: str, extra: dict | None = None) -> dict[str, SkillHit]:
+    """extra = recruiter-defined custom skills {name: [synonyms]} merged with the built-in taxonomy."""
     hits: dict[str, SkillHit] = {}
     lines = [l.strip() for l in text.splitlines() if l.strip()]
-    for skill, forms in SKILLS.items():
+    for skill, forms in {**SKILLS, **(extra or {})}.items():
+        forms = [f for f in forms if f.strip()]
+        if not forms:
+            continue
         pat = re.compile(r"(?<![\w])(" + "|".join(re.escape(f) for f in sorted(forms, key=len, reverse=True)) + r")(?![\w])",
                          re.IGNORECASE)
         fallback = None
         for line in lines:
-            if pat.search(line):
+            probe = NOT_THIS_SKILL[skill].sub(" ", line) if skill in NOT_THIS_SKILL else line
+            if pat.search(probe):
                 if BEGINNER.search(line):
                     fallback = fallback or SkillHit(skill, line[:160], beginner=True)
                     continue
@@ -134,15 +147,47 @@ def qualification_level(text: str) -> int:
     return best
 
 
-def build_profile(text: str) -> Profile:
+def build_profile(text: str, extra: dict | None = None) -> Profile:
     sections = split_sections(text)
     edu_text = "\n".join(sections.get("education", [])) or text
     proj = len([l for l in sections.get("projects", []) if len(l) > 15])
     certs = len([l for l in sections.get("certifications", []) if len(l) > 5])
     return Profile(
-        skills=find_skills(text),
+        skills=find_skills(text, extra),
         years_experience=experience_years(sections),
         level=qualification_level(edu_text),
         projects=min(proj, 5),
         certifications=min(certs, 5),
     )
+
+
+MUST_CUES = re.compile(r"\b(required|requirements?|must|mandatory|essential|wajib|diperlukan|syarat|keperluan|minimum)\b", re.I)
+NICE_CUES = re.compile(r"\b(advantage|advantageous|preferred|preferably|nice to have|plus|bonus|kelebihan|diutamakan|added)\b", re.I)
+
+
+def skills_from_job_ad(ad: str, extra: dict | None = None) -> tuple[list[str], list[str]]:
+    """Read any job advertisement (EN or BM) and suggest must-have vs nice-to-have skills.
+    Lines with 'advantage / preferred / kelebihan' go to nice-to-have; everything else to must-have."""
+    must, nice = [], []
+    section_nice = False
+    for line in [l for l in ad.splitlines() if l.strip()]:
+        if NICE_CUES.search(line) and len(line) < 60:
+            section_nice = True          # a heading like "Added advantage:" switches the following lines
+        elif MUST_CUES.search(line) and len(line) < 60:
+            section_nice = False
+        found = find_skills(line, extra)
+        target = nice if (section_nice or NICE_CUES.search(line)) else must
+        for s in found:
+            if s not in must and s not in nice:
+                target.append(s)
+    return must, nice
+
+
+def parse_custom_skills(text: str) -> dict[str, list[str]]:
+    """'AutoCAD Civil 3D / civil 3d, Primavera P6 / primavera' -> {name: [synonyms]}; one skill per comma or line."""
+    out = {}
+    for chunk in re.split(r"[,\n;]", text or ""):
+        parts = [p.strip() for p in chunk.split("/") if p.strip()]
+        if parts:
+            out[parts[0]] = [p.lower() for p in parts]
+    return out

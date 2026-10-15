@@ -50,11 +50,11 @@ def _json(text: str):
     return json.loads(m.group(0)) if m else None
 
 
-def extract_skills(provider, model, key, anon_text: str) -> tuple[list[dict], int]:
+def extract_skills(provider, model, key, anon_text: str, skill_names: list[str] | None = None) -> tuple[list[dict], int]:
     """Returns (verified skills, number of rejected/unverifiable claims)."""
     prompt = (
         "You read anonymised CVs (English or Bahasa Melayu). From this list of canonical skills ONLY:\n"
-        f"{', '.join(SKILLS)}\n\n"
+        f"{', '.join(skill_names or SKILLS)}\n\n"
         "Return JSON: [{\"skill\": <canonical skill>, \"evidence\": <an EXACT short quote copied from the CV>}]. "
         "Include a skill only if the CV demonstrates it. Do not guess.\n\nCV:\n" + anon_text[:6000]
     )
@@ -63,7 +63,7 @@ def extract_skills(provider, model, key, anon_text: str) -> tuple[list[dict], in
     ok, rejected = [], 0
     for it in items if isinstance(items, list) else []:
         sk, ev = str(it.get("skill", "")), str(it.get("evidence", "")).strip()
-        if sk in SKILLS and len(ev) >= 4 and re.sub(r"\s+", " ", ev.lower()) in norm:
+        if sk in (skill_names or SKILLS) and len(ev) >= 4 and re.sub(r"\s+", " ", ev.lower()) in norm:
             ok.append({"skill": sk, "evidence": ev})
         else:
             rejected += 1

@@ -32,7 +32,7 @@ def _has_gap(text: str) -> bool:
 def legacy_score(raw_text: str, job: Job) -> tuple[float, list[str]]:
     low = raw_text.lower()
     reasons = []
-    skills = find_skills(raw_text)
+    skills = find_skills(raw_text, job.custom_skills)
     kw = sum(1 for s in job.must_have + job.nice_to_have if s in skills)
     base = 70 * kw / max(len(job.must_have + job.nice_to_have), 1)
     reasons.append(f"Keyword hits: {kw}")

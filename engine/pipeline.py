@@ -25,7 +25,7 @@ class Evaluation:
 
 def evaluate(cid: str, raw: str, job: Job, ai_skills: list[dict] | None = None, ai_rejected: int = 0) -> Evaluation:
     anon, removed = anonymize(raw)
-    profile = build_profile(anon)
+    profile = build_profile(anon, job.custom_skills)
     for item in ai_skills or []:
         if item["skill"] not in profile.skills:
             profile.skills[item["skill"]] = SkillHit(item["skill"], item["evidence"], "ai")
@@ -37,7 +37,7 @@ def evaluate(cid: str, raw: str, job: Job, ai_skills: list[dict] | None = None, 
 def fairscreen_score_text(raw: str, job: Job) -> float:
     """Full pipeline (anonymise → extract → score) on a piece of text. Used by the Twin Test."""
     anon, _ = anonymize(raw)
-    return score(build_profile(anon), job).score
+    return score(build_profile(anon, job.custom_skills), job).score
 
 
 def read_upload(name: str, data: bytes) -> str:

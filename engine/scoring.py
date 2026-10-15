@@ -35,6 +35,7 @@ class Job:
     target_years: float = 2.0
     min_level: int = 3
     description: str = ""
+    custom_skills: dict = field(default_factory=dict)   # recruiter-defined skills {name: [synonyms]}
     weights: dict = field(default_factory=lambda: {"must": 60, "nice": 15, "experience": 15, "qualification": 5, "evidence": 5})
 
 
