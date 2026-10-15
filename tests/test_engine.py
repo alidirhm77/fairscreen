@@ -44,6 +44,16 @@ def test_twin_test_fairscreen_is_invariant():
         assert len(scores) == 1, (c["id"], scores)
 
 
+def test_institution_name_never_swallows_next_line():
+    # Regression: found by running the Twin Test on a real CV. An institution name at the end of a
+    # line used to absorb the following heading ("Work Experience"), deleting the experience section.
+    cv = ("Test Person\nM.Sc. Computing, Universiti Kebangsaan Malaysia\nWork Experience\n"
+          "Data Analyst, 2022 - present\nSkills: Python, SQL, Excel, dashboards")
+    scores = {fairscreen_score_text(t.text, JOB) for t in make_twins(cv, "M", "Malay")}
+    assert len(scores) == 1, scores
+    assert "Work Experience" in anonymize(cv)[0]
+
+
 def test_score_is_additive_and_bounded():
     for c in CANDIDATES:
         r = evaluate(c["id"], c["cv"], JOB).result
