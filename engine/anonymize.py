@@ -34,9 +34,21 @@ LABEL_LINES = re.compile(
     re.IGNORECASE | re.MULTILINE,
 )
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
-PHONE = re.compile(r"(?:\+?6?0)[\s-]?1\d[\s-]?\d{3,4}[\s-]?\d{4}|\b0\d{1,2}[\s-]?\d{3,4}[\s-]?\d{4}\b")
+PHONE = re.compile(r"\+\d{1,3}[\s-]?\(?\d{1,4}\)?(?:[\s-]?\d{2,4}){2,4}"            # international, e.g. +967 774 640 570
+                   r"|(?:\+?6?0)[\s-]?1\d[\s-]?\d{3,4}[\s-]?\d{4}|\b0\d{1,2}[\s-]?\d{3,4}[\s-]?\d{4}\b")
 MYKAD = re.compile(r"\b\d{6}-\d{2}-\d{4}\b")
-URL = re.compile(r"(https?://)?(www\.)?(linkedin\.com|github\.com|gitlab\.com)/[\w\-/.]+", re.IGNORECASE)
+URL = re.compile(r"https?://\S+|www\.\S+|\b(?:linkedin\.com|github\.com|gitlab\.com|orcid\.org)/\S+", re.IGNORECASE)
+# Referees and other people named with a title (Dr. / Prof.) — a name reveals origin and networks.
+TITLED_NAME = re.compile(r"\b(?:Assoc\.?\s+Prof|Prof(?:essor)?|Dr|Ir|Ts)\.?\s+[A-Z][\w.'-]*(?:\s+(?:[A-Z][\w.'-]*|binti\b|bin\b|a/l|a/p)){0,5}")
+# Countries and home cities act as nationality proxies.
+PLACES = re.compile(r"\b(" + "|".join([
+    "malaysia", "yemen", "sana'a", "sanaa", "aden", "taiz", "ibb", "egypt", "cairo", "saudi arabia", "riyadh", "jeddah",
+    "indonesia", "jakarta", "bangladesh", "dhaka", "pakistan", "karachi", "lahore", "nigeria", "lagos", "china", "beijing",
+    "iran", "tehran", "iraq", "baghdad", "syria", "damascus", "sudan", "khartoum", "somalia", "jordan", "amman", "libya",
+    "oman", "muscat", "uae", "dubai", "qatar", "kuwait", "philippines", "manila", "vietnam", "hanoi", "thailand", "bangkok",
+    "myanmar", "nepal", "kathmandu", "sri lanka", "colombo", "singapore", "brunei", "turkey", "istanbul", "algeria",
+    "morocco", "tunisia", "palestine", "lebanon", "afghanistan", "kenya", "ethiopia", "uzbekistan", "kazakhstan"]) + r")\b",
+    re.IGNORECASE)
 POSTCODE_STATE = re.compile(
     r"\b\d{5}\s+[A-Za-z .]*(selangor|kuala lumpur|penang|pulau pinang|johor|perak|kedah|kelantan|terengganu|"
     r"pahang|melaka|negeri sembilan|sabah|sarawak|perlis|putrajaya|labuan)\b",
@@ -99,7 +111,8 @@ def anonymize(text: str) -> tuple[str, list[dict]]:
     out = LABEL_LINES.sub("", out)
 
     for pat, kind, rep in [(EMAIL, "email", "[EMAIL]"), (MYKAD, "IC number", "[IC]"), (PHONE, "phone", "[PHONE]"),
-                           (URL, "profile link", "[PROFILE LINK]"), (POSTCODE_STATE, "address", "[LOCATION]")]:
+                           (URL, "link", "[LINK]"), (TITLED_NAME, "referee / named person", "[PERSON]"),
+                           (POSTCODE_STATE, "address", "[LOCATION]")]:
         for m in pat.finditer(out):
             log(kind, m.group(0))
         out = pat.sub(rep, out)
@@ -108,6 +121,10 @@ def anonymize(text: str) -> tuple[str, list[dict]]:
         if m.group(0).strip():
             log("institution name", m.group(0))
     out = INSTITUTION.sub("[INSTITUTION]", out)
+
+    for m in PLACES.finditer(out):
+        log("country / city (nationality proxy)", m.group(0))
+    out = PLACES.sub("[LOCATION]", out)
 
     for kind, pat in _PROTECTED.items():
         for m in pat.finditer(out):
