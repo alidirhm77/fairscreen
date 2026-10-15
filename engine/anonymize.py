@@ -39,10 +39,10 @@ PHONE = re.compile(r"\+\d{1,3}[\s-]?\(?\d{1,4}\)?(?:[\s-]?\d{2,4}){2,4}"        
 MYKAD = re.compile(r"\b\d{6}-\d{2}-\d{4}\b")
 URL = re.compile(r"https?://\S+|www\.\S+|\b(?:linkedin\.com|github\.com|gitlab\.com|orcid\.org)/\S+", re.IGNORECASE)
 # Referees and other people named with a title (Dr. / Prof.) — a name reveals origin and networks.
-TITLED_NAME = re.compile(r"\b(?:Assoc\.?\s+Prof|Prof(?:essor)?|Dr|Ir|Ts)\.?\s+[A-Z][\w.'-]*(?:\s+(?:[A-Z][\w.'-]*|binti\b|bin\b|a/l|a/p)){0,5}")
+TITLED_NAME = re.compile(r"\b(?:Assoc\.?\s+Prof|Prof(?:essor)?|Dr|Ir|Ts)\.?\s+[.\-]?[A-Z][\w.'’-]*(?:\s+(?:[.\-]?[A-Z][\w.'’-]*|binti\b|bin\b|a/l|a/p)){0,5}")
 # Countries and home cities act as nationality proxies.
 PLACES = re.compile(r"\b(" + "|".join([
-    "malaysia", "yemen", "sana'a", "sanaa", "aden", "taiz", "ibb", "egypt", "cairo", "saudi arabia", "riyadh", "jeddah",
+    "malaysia", "yemen", "sana'a", "sana’a", "sanaa", "aden", "taiz", "ibb", "egypt", "cairo", "saudi arabia", "riyadh", "jeddah",
     "indonesia", "jakarta", "bangladesh", "dhaka", "pakistan", "karachi", "lahore", "nigeria", "lagos", "china", "beijing",
     "iran", "tehran", "iraq", "baghdad", "syria", "damascus", "sudan", "khartoum", "somalia", "jordan", "amman", "libya",
     "oman", "muscat", "uae", "dubai", "qatar", "kuwait", "philippines", "manila", "vietnam", "hanoi", "thailand", "bangkok",
