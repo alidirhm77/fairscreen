@@ -39,7 +39,7 @@ PHONE = re.compile(r"\+\d{1,3}[\s-]?\(?\d{1,4}\)?(?:[\s-]?\d{2,4}){2,4}"        
 MYKAD = re.compile(r"\b\d{6}-\d{2}-\d{4}\b")
 URL = re.compile(r"https?://\S+|www\.\S+|\b(?:linkedin\.com|github\.com|gitlab\.com|orcid\.org)/\S+", re.IGNORECASE)
 # Referees and other people named with a title (Dr. / Prof.) — a name reveals origin and networks.
-TITLED_NAME = re.compile(r"\b(?:Assoc\.?\s+Prof|Prof(?:essor)?|Dr|Ir|Ts)\.?\s+[.\-]?[A-Z][\w.'’-]*(?:\s+(?:[.\-]?[A-Z][\w.'’-]*|binti\b|bin\b|a/l|a/p)){0,5}")
+TITLED_NAME = re.compile(r"\b(?:Assoc\.?\s+Prof|Prof(?:essor)?|Dr|Ir|Ts)\.?[ \t]+[.\-]?[A-Z][\w.'’-]*(?:[ \t]+(?:[.\-]?[A-Z][\w.'’-]*|binti\b|bin\b|a/l|a/p)){0,5}")
 # Countries and home cities act as nationality proxies.
 PLACES = re.compile(r"\b(" + "|".join([
     "malaysia", "yemen", "sana'a", "sana’a", "sanaa", "aden", "taiz", "ibb", "egypt", "cairo", "saudi arabia", "riyadh", "jeddah",
@@ -56,9 +56,9 @@ POSTCODE_STATE = re.compile(
 )
 INSTITUTION = re.compile(
     r"\b(?i:universiti|university|kolej|college|politeknik|polytechnic|institut|institute|akademi|academy|"
-    r"ikm|ikbn|adtec|ilp)\b(?:\s+(?:(?i:of the|of|malaysia|teknologi|sains|kebangsaan|putra|utara|islam|antarabangsa|"
+    r"ikm|ikbn|adtec|ilp)\b(?:[ \t]+(?:(?i:of the|of|malaysia|teknologi|sains|kebangsaan|putra|utara|islam|antarabangsa|"
     r"tun|hussein|onn|sultan|abdul|aziz|azlan|shah|idris|zainal|abidin|pendidikan)\b|[A-Z][\w&'-]*))*"
-    r"|\b[A-Z][\w&'-]*(?:\s+[A-Z][\w&'-]*)*\s+(?:University|College|Polytechnic|Institute)\b"
+    r"|\b[A-Z][\w&'-]*(?:[ \t]+[A-Z][\w&'-]*)*[ \t]+(?:University|College|Polytechnic|Institute)\b"
     r"|\b(?:UM|UKM|UPM|USM|UTM|UiTM|UUM|UIAM|IIUM|UTP|MMU|UTAR|UCSI|APU|INTI|SEGi|Taylor's|Sunway|Monash|"
     r"Nottingham|UNIMAS|UMS|UTeM|UMP|UniMAP|UTHM|UPSI|UMT|UniSZA|UMK|USIM|UNITEN|UNIKL|Help)\b"
 )

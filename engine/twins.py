@@ -33,7 +33,7 @@ GENDER_SWAP = [
     (r"\bfemale\b", "male"), (r"\bmale\b", "female"), (r"\bperempuan\b", "lelaki"), (r"\blelaki\b", "perempuan"),
 ]
 INST_LINE = re.compile(
-    r"(?i:universiti|university|politeknik|polytechnic|kolej|college)(?:[ \t]+[A-Za-z'&]+){0,4}"
+    r"(?i:universiti|university|politeknik|polytechnic|kolej|college)(?:[ \t]+[A-Z][A-Za-z'&]*){0,4}"
     r"|\b(?:UM|UKM|UPM|USM|UTM|UiTM|UUM|IIUM|UTAR|UCSI|APU|MMU|INTI|SEGi|Taylor's|Sunway)\b"
 )
 
