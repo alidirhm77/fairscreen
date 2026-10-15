@@ -17,7 +17,8 @@ from engine.legacy import legacy_score
 from engine.pipeline import evaluate, fairscreen_score_text, read_upload
 from engine.sample_data import CANDIDATES, JOBS
 from engine.scoring import Job, band
-from engine.taxonomy import PROTECTED_TERMS, SKILLS
+from engine.taxonomy import PROTECTED_TERMS, SKILLS, SKILL_FIELDS
+from engine.extract import parse_custom_skills, skills_from_job_ad
 from engine.twins import make_twins
 
 st.set_page_config(page_title="FairScreen — Fair AI Hiring", page_icon="⚖️", layout="wide")
@@ -155,30 +156,74 @@ with a built-in <b>Malaysian Twin Test</b> that measures bias before a single ca
 elif page == "📥 Screen":
     st.title("📥 Screen candidates")
     a, b = st.columns([1, 1.2])
+    LEVELS_UI = {2: "Certificate / SKM", 3: "Diploma", 4: "Degree", 5: "Master's"}
+
+    def load_job(j: Job):
+        ss.f_title, ss.f_target, ss.f_lvl = j.title, float(j.target_years), j.min_level
+        ss.f_must, ss.f_nice = list(j.must_have), list(j.nice_to_have)
+        ss.f_custom = ", ".join(" / ".join(v) if len(v) > 1 else k for k, v in j.custom_skills.items())
+        ss.f_desc, ss.f_weights = j.description, dict(j.weights)
+
+    if "f_title" not in ss:
+        load_job(ss.job)
     with a:
         st.subheader("1 · Job")
-        jk = st.selectbox("Role template", list(JOBS), index=list(JOBS).index(ss.job_key))
-        base = JOBS[jk]
-        title = st.text_input("Job title", base.title)
-        must = st.multiselect("Must-have skills", list(SKILLS), default=base.must_have)
-        nice = st.multiselect("Nice-to-have skills", [s for s in SKILLS if s not in must],
-                              default=[s for s in base.nice_to_have if s not in must])
+        mode = st.radio("Define the job", ["📋 Pick a ready template", "📝 Paste any job ad"], horizontal=True,
+                        label_visibility="collapsed")
+        custom = parse_custom_skills(ss.get("f_custom", ""))
+        if mode.startswith("📋"):
+            jk = st.selectbox(f"Role template ({len(JOBS)} ready)", list(JOBS), index=list(JOBS).index(ss.job_key))
+            if jk != ss.job_key:
+                ss.job_key = jk
+                load_job(JOBS[jk])
+                custom = parse_custom_skills(ss.f_custom)
+        else:
+            ad = st.text_area("Paste a job advertisement (English or Bahasa Melayu)", height=170,
+                              placeholder="e.g. Requirements: Diploma in Accounting, experience with AutoCount and SST...\n"
+                                          "Added advantage: Mandarin, payroll experience")
+            if st.button("✨ Detect skills from this ad"):
+                m, n = skills_from_job_ad(ad, custom)
+                if not (m or n):
+                    st.warning("No known skills found. Add the job's key skills in “Your own skills” below, then detect again.")
+                else:
+                    ss.f_must, ss.f_nice = m or n[:1], [x for x in n if x not in m]
+                    first = next((l.strip() for l in ad.splitlines() if l.strip()), "")
+                    if 3 < len(first) < 70:
+                        ss.f_title = first
+                    ss.f_desc = ad[:600]
+                    st.success(f"Found {len(m)} must-have and {len(n)} nice-to-have skills. Review them below.")
+        st.text_input("➕ Your own skills (optional — for any job)", key="f_custom",
+                      placeholder="Primavera P6 / primavera, Halal certification / halal / jakim, Forklift licence / forklift",
+                      help="Comma-separated. Use “/” to add synonyms the CV might use. These become selectable skills below "
+                           "and are scored, explained and Twin-Tested exactly like built-in ones.")
+        custom = parse_custom_skills(ss.f_custom)
+        ordered = [x for grp in SKILL_FIELDS.values() for x in grp]
+        options = ordered + [c for c in custom if c not in SKILLS]
+        ss.f_must = [x for x in ss.f_must if x in options]
+        ss.f_nice = [x for x in ss.f_nice if x in options and x not in ss.f_must]
+        st.text_input("Job title", key="f_title")
+        must = st.multiselect("Must-have skills", options, key="f_must")
+        nice = st.multiselect("Nice-to-have skills", [x for x in options if x not in must], key="f_nice")
+        st.caption(f"{len(SKILLS)} built-in skills across {len(SKILL_FIELDS)} fields (EN + BM)"
+                   + (f" + {len(custom)} of your own" if custom else "") + ".")
         c1, c2 = st.columns(2)
-        target = c1.number_input("Target years of experience", 0.0, 10.0, float(base.target_years), 0.5)
-        lvl = c2.selectbox("Minimum qualification", [2, 3, 4, 5],
-                           format_func={2: "Certificate / SKM", 3: "Diploma", 4: "Degree", 5: "Master's"}.get,
-                           index=[2, 3, 4, 5].index(base.min_level))
+        target = c1.number_input("Target years of experience", 0.0, 15.0, step=0.5, key="f_target")
+        lvl = c2.selectbox("Minimum qualification", list(LEVELS_UI), format_func=LEVELS_UI.get, key="f_lvl")
         with st.expander("Scoring weights (total 100)"):
-            w = dict(base.weights)
+            w = dict(ss.f_weights)
             cols = st.columns(5)
             for i, k in enumerate(w):
                 w[k] = cols[i].number_input(k, 0, 100, w[k], 5)
             if sum(w.values()) != 100:
                 st.warning(f"Weights sum to {sum(w.values())}; scores are capped at 100.")
-        new_job = Job(title, must, nice, 0, target, lvl, base.description, w)
+        new_job = Job(title=ss.f_title or "Untitled role", must_have=must, nice_to_have=nice, target_years=target,
+                      min_level=lvl, description=ss.f_desc, weights=w, custom_skills=custom)
+        jk = ss.job_key
     with b:
         st.subheader("2 · Candidates")
         src = st.radio("Source", ["Demo pool (14 fictional CVs)", "Upload CVs (PDF / DOCX / TXT)"], horizontal=True)
+        if src.startswith("Demo"):
+            st.caption("The demo pool is built for data / IT roles. For other jobs, upload real or sample CVs.")
         files = None
         if src.startswith("Upload"):
             files = st.file_uploader("CVs", type=["pdf", "docx", "txt"], accept_multiple_files=True)
@@ -205,7 +250,7 @@ elif page == "📥 Screen":
                 if cfg:
                     from engine.anonymize import anonymize
                     try:
-                        ai, rej = llm.extract_skills(*cfg, anonymize(raw)[0])
+                        ai, rej = llm.extract_skills(*cfg, anonymize(raw)[0], list(SKILLS) + list(custom))
                     except Exception as e:  # network / key problems never break screening
                         st.toast(f"AI extraction failed for {cid}: {e}")
                 out.append(evaluate(cid, raw, new_job, ai, rej))

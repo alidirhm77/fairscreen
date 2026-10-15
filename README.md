@@ -7,7 +7,7 @@ FairScreen is a blind, explainable CV-screening assistant built for Malaysia's m
 ## Features
 | Page | What it does |
 |---|---|
-| 📥 Screen | Job builder (must/nice skills, weights, min level) · upload PDF/DOCX/TXT or use the 14-CV demo pool · optional AI skill extraction with **evidence verification** |
+| 📥 Screen | **Any job:** 12 ready templates, paste any job ad (EN/BM) → skills detected, or add your own custom skills · 71 built-in skills across 9 fields · weights, min level · upload PDF/DOCX/TXT or use the 14-CV demo pool · optional AI skill extraction with **evidence verification** |
 | 🏆 Shortlist | Ranked list · waterfall explanation (exact additive attributions) · blind view + list of hidden items · human decision with **mandatory reason when overriding the AI** |
 | 🧬 Twin Test | 10 counterfactual twins per CV · FairScreen vs simulated legacy rules vs (optional) raw LLM · noise baseline for the LLM |
 | 📊 Fairness | Shortlist rates by gender / ethnicity / institution · four-fifths impact ratio · exact gap decomposition by factor · small-sample warning |
