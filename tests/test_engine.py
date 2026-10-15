@@ -10,6 +10,8 @@ from engine.audit import AuditLog
 from engine.pipeline import evaluate, fairscreen_score_text
 from engine.sample_data import CANDIDATES, JOBS
 from engine.twins import make_twins
+from engine.extract import skills_from_job_ad, parse_custom_skills, find_skills
+from engine.scoring import Job
 
 JOB = JOBS["Junior Data Analyst (Penang, hybrid)"]
 
@@ -52,6 +54,29 @@ def test_institution_name_never_swallows_next_line():
     scores = {fairscreen_score_text(t.text, JOB) for t in make_twins(cv, "M", "Malay")}
     assert len(scores) == 1, scores
     assert "Work Experience" in anonymize(cv)[0]
+
+
+def test_any_job_via_job_ad_and_custom_skills():
+    ad = ("Account Executive\nRequirements:\n- AutoCount or SQL Accounting, bank reconciliation\n- SST and income tax\n"
+          "Added advantage:\n- Mandarin\n- Primavera P6")
+    custom = parse_custom_skills("Primavera P6 / primavera")
+    must, nice = skills_from_job_ad(ad, custom)
+    assert "Accounting Software" in must and "Taxation" in must and "SQL" not in must
+    assert "Mandarin" in nice and "Primavera P6" in nice
+    job = Job(title="Acc", must_have=must, nice_to_have=nice, custom_skills=custom)
+    cv = "Test Person\nEXPERIENCE\nAccount Assistant, 2021 - present\n- AutoCount, bank reconciliation, SST\nSkills: Primavera"
+    scores = {fairscreen_score_text(t.text, job) for t in make_twins(cv, "F", "Malay")}
+    assert len(scores) == 1 and scores.pop() > 50
+
+
+def test_bm_job_ad_is_read():
+    must, nice = skills_from_job_ad("Syarat wajib: perakaunan, AutoCount, cukai SST\nKelebihan: boleh berbahasa Mandarin")
+    assert {"Accounting", "Accounting Software", "Taxation"} <= set(must) and nice == ["Mandarin"]
+
+
+def test_misleading_phrases_are_not_skills():
+    assert "Excel" not in find_skills("Excellent communication skills")
+    assert "SQL" not in find_skills("SQL Accounting software")
 
 
 def test_score_is_additive_and_bounded():
