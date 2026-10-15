@@ -22,6 +22,15 @@ def test_anonymiser_removes_identity_but_keeps_skills():
     assert {"name", "institution name"} <= {r["type"] for r in removed}
 
 
+def test_international_cv_leaks_are_removed():
+    cv = ("Test Person\nORCID: https://orcid.org/0000-0001\nNO: +967774640570\n"
+          "Referee: Dr. Redhwan M.A.Saad, Cairo, Egypt\nBachelor, Ibb University, Yemen\nSkills: Python, SQL")
+    anon, _ = anonymize(cv)
+    for leak in ["orcid.org", "967", "Redhwan", "Cairo", "Egypt", "Yemen", "Ibb"]:
+        assert leak not in anon, leak
+    assert "Python" in anon and "SQL" in anon
+
+
 def test_bahasa_melayu_cv_is_read():
     e = evaluate("C04", CANDIDATES[3]["cv"], JOB)
     assert {"Power BI", "SQL", "Excel", "Communication"} <= set(e.profile.skills)
